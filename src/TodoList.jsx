@@ -105,7 +105,7 @@ class TodoList extends React.Component {
                         {todo.heading || "Click to add title"}
                       </p>
                     )}
-                    <div>
+                    <div style={{maxHeight:"250px",overflowY:"scroll"}}>
                       {" "}
                       {todo.list.map((list, ind) => {
                         return (
