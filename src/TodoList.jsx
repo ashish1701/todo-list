@@ -43,6 +43,10 @@ class TodoList extends React.Component {
     }
   };
 
+  toggleChangeHeading = (val) => {
+    this.setState({ changeHeading: val });
+  };
+
   deleteTask = (todoInd, listInd) => {
     this.setState({
       todoList: this.state.todoList.map((el, i) => {
@@ -105,7 +109,7 @@ class TodoList extends React.Component {
                         {todo.heading || "Click to add title"}
                       </p>
                     )}
-                    <div style={{maxHeight:"250px",overflowY:"scroll"}}>
+                    <div style={{ maxHeight: "250px", overflowY: "scroll" }}>
                       {" "}
                       {todo.list.map((list, ind) => {
                         return (
