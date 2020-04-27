@@ -60,9 +60,16 @@ input:focus {
 
 .types-box{
   padding:8px;
-
+  cursor: pointer;
 }
 
 .active{
   border:1px solid #e6e6ee
+}
+
+.resetButton{
+  padding:16px;
+  background: #fafafa;
+  cursor: pointer;
+  float: right;
 }

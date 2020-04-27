@@ -126,11 +126,26 @@ class TodoList extends React.Component {
       todoList: this.state.todoList.filter((ele, i) => i !== ind),
     });
   };
+
+  reset = () => {
+    this.setState({
+      todoList: [],
+      todo: "",
+      displayTypes: DISPLAY_TYPES,
+      typeOfDisplay: ALL,
+    });
+  };
+
   render() {
     const { todoList, typeOfDisplay, displayTypes, todo } = this.state;
     return (
       <div className="container">
+        <button className="resetButton" onClick={() => this.reset()}>
+          Reset{" "}
+        </button>
+
         <h1>Todos</h1>
+
         <div className="todo-container">
           <input
             placeholder="Type TODO"
