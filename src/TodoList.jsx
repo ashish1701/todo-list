@@ -1,171 +1,187 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import activeIcon from "./images/radio-active.svg";
+import inactiveIcon from "./images/radio-inactive.svg";
+import closeIcon from "./images/close.svg";
 import "./todo.css";
+
+const ALL = "All";
+const ACTIVE = "Active";
+const COMPLETED = "Completed";
+
+const DISPLAY_TYPES = [ALL, ACTIVE, COMPLETED];
 
 class TodoList extends React.Component {
   state = {
     todoList: [],
-    changeHeading: { index: 0, change: false },
-    newTaskDesc: {},
+    todo: "",
+    displayTypes: DISPLAY_TYPES,
+    typeOfDisplay: ALL,
   };
 
-  createANewList = () => {
-    this.setState({
-      todoList: [...this.state.todoList, { heading: "", list: [] }],
-    });
+  componentDidMount() {
+    const todoInLocalStorage = localStorage.getItem("todoList");
+    if (todoInLocalStorage) {
+      this.setState({ todoList: JSON.parse(todoInLocalStorage) });
+    }
+    window.addEventListener("beforeunload", this.saveStateToLocalStorage);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("beforeunload", this.saveStateToLocalStorage);
+
+    // saves if component has a chance to unmount
+    this.saveStateToLocalStorage();
+  }
+
+  saveStateToLocalStorage = () => {
+    localStorage.setItem("todoList", JSON.stringify(this.state.todoList));
   };
 
-  setHeading = (index, heading) => {
-    this.setState({
-      todoList: this.state.todoList.map((el, i) => {
-        return i === index ? { ...el, heading } : el;
-      }),
-    });
-  };
-
-  saveHeading = () => this.setState({ changeHeading: {} });
-
-  addNewTask = (ind, deleteInfo) => {
-    if (this.state.newTaskDesc.value) {
-      this.setState(
-        {
-          todoList: this.state.todoList.map((el, i) => {
-            return i === ind
-              ? { ...el, list: [...el.list, this.state.newTaskDesc.value] }
-              : el;
-          }),
-          newTaskDesc: {},
-        },
-        () => {
-          if (deleteInfo)
-            this.deleteTask(deleteInfo.todoListInd, deleteInfo.taskInd);
-        }
-      );
+  updateTodoList = () => {
+    const { todo } = this.state;
+    if (todo) {
+      const timestamp = new Date().getTime();
+      this.setState({
+        todoList: [
+          { todo, isCompleted: false, timestamp },
+          ...this.state.todoList,
+        ],
+        todo: "",
+      });
     }
   };
 
-  toggleChangeHeading = (val) => {
-    this.setState({ changeHeading: val });
+  listToShow = () => {
+    const { todoList, typeOfDisplay } = this.state;
+    switch (typeOfDisplay) {
+      case ALL:
+        return todoList;
+      case ACTIVE:
+        return todoList.filter((ele) => !ele.isCompleted);
+      case COMPLETED:
+        return todoList.filter((ele) => ele.isCompleted);
+
+      default:
+        if (typeOfDisplay.match(/#[a-z]+/gi)) {
+          return todoList.filter(
+            (ele) => ele.todo.indexOf(typeOfDisplay) !== -1
+          );
+        }
+        console.log("default case");
+    }
   };
 
-  deleteTask = (todoInd, listInd) => {
+  setHashtagToTypes = (part) => {
+    if (this.state.displayTypes.indexOf(part) === -1) {
+      this.setState({
+        displayTypes: [...this.state.displayTypes, part],
+        typeOfDisplay: part,
+      });
+    }
+  };
+
+  getHighlightedText = (text) => {
+    const parts = text.split(" ");
+    return (
+      <span className="todo-text">
+        {parts.map((part) =>
+          part.match(/#[a-z]+/gi) ? (
+            <i onClick={() => this.setHashtagToTypes(part)}>{part}&nbsp;</i>
+          ) : (
+            `${part}${" "}`
+          )
+        )}
+      </span>
+    );
+  };
+
+  getUniqueKey = (i) => {
+    return `${Math.floor(Math.random() * 100)}-${i}`;
+  };
+
+  changeCompleteStatus = (ind) => {
+    const { todoList } = this.state;
+    const newTodoList = [
+      ...todoList.filter((ele, i) => i !== ind),
+      {
+        todo: todoList[ind].todo,
+        timestamp: todoList[ind].timestamp,
+        isCompleted: !todoList[ind].isCompleted,
+      },
+    ];
     this.setState({
-      todoList: this.state.todoList.map((el, i) => {
-        return i === todoInd
-          ? { ...el, list: el.list.filter((_, i) => i !== listInd) }
-          : el;
-      }),
+      todoList: [
+        ...newTodoList
+          .filter((ele) => !ele.isCompleted)
+          .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1)),
+        ...newTodoList
+          .filter((ele) => ele.isCompleted)
+          .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1)),
+      ],
     });
   };
 
-  onDropEl = (event, todoIndex) => {
-    const el = JSON.parse(event.dataTransfer.getData("listInfo"));
-    const value = this.state.todoList[el.todoListInd].list[el.taskInd];
-    this.setState({ newTaskDesc: { value } }, () => {
-      this.addNewTask(todoIndex, el);
+  deleteTask = (ind) => {
+    this.setState({
+      todoList: this.state.todoList.filter((ele, i) => i !== ind),
     });
-
-    // deleteTask(el.todoListInd, el.taskInd);
   };
   render() {
-    const { todoList, changeHeading, newTaskDesc } = this.state;
+    const { todoList, typeOfDisplay, displayTypes, todo } = this.state;
     return (
-      <>
-        <h1>To Do List</h1>
-        <div className="d-f-f-w">
-          {todoList.length > 0 && (
-            <div className="d-f-f-w">
-              {todoList.map((todo, i) => {
+      <div className="container">
+        <h1>Todos</h1>
+        <div className="todo-container">
+          <input
+            placeholder="Type TODO"
+            onChange={(e) => this.setState({ todo: e.target.value })}
+            onKeyPress={(e) => e.key === "Enter" && this.updateTodoList()}
+            value={todo}
+            className="input_box"
+          />
+
+          {this.listToShow()?.length > 0 && (
+            <div>
+              {/* <button onClick={() => setTodoList([])}>Reset</button> */}
+              {this.listToShow().map((list, i) => {
                 return (
-                  <div
-                    key={i}
-                    className="list"
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                    }}
-                    onDrop={(event) => {
-                      console.log(event, "onDrop");
-                      this.onDropEl(event, i);
-                    }}
-                  >
-                    {changeHeading.index === i && changeHeading.change ? (
-                      <input
-                        placeholder="Set Heading"
-                        value={todo.heading}
-                        onChange={(e) => this.setHeading(i, e.target.value)}
-                        onKeyPress={(e) =>
-                          e.key === "Enter" && this.saveHeading()
-                        }
-                        id="heading"
-                        autoFocus
-                        className="heading-input-box"
+                  <div key={this.getUniqueKey(i)} className="todo-box">
+                    <div style={{ display: "flex" }}>
+                      <img
+                        src={list.isCompleted ? activeIcon : inactiveIcon}
+                        alt={`completed-${list.isCompleted}`}
+                        onClick={() => this.changeCompleteStatus(i)}
                       />
-                    ) : (
-                      <p
-                        className="list-heading"
-                        onClick={() =>
-                          this.toggleChangeHeading({ index: i, change: true })
-                        }
-                      >
-                        {todo.heading || "Click to add title"}
-                      </p>
-                    )}
-                    <div style={{ maxHeight: "250px", overflowY: "scroll" }}>
-                      {" "}
-                      {todo.list.map((list, ind) => {
-                        return (
-                          <div
-                            key={ind}
-                            className="task-details-container"
-                            draggable
-                            onDragStart={(e) => {
-                              console.log(list);
-                              e.dataTransfer.setData(
-                                "listInfo",
-                                JSON.stringify({
-                                  todoListInd: i,
-                                  taskInd: ind,
-                                })
-                              );
-                            }}
-                          >
-                            <img
-                              src="https://img.icons8.com/carbon-copy/100/000000/delete-forever--v1.png"
-                              alt="Delete"
-                              style={{
-                                height: 16,
-                                float: "right",
-                                cursor: "pointer",
-                              }}
-                              onClick={() => this.deleteTask(i, ind)}
-                            />
-                            <p className="task-text">{list}</p>
-                          </div>
-                        );
-                      })}
+                      {this.getHighlightedText(list.todo)}
                     </div>
-                    <input
-                      placeholder="+ Add New Task"
-                      className="add-new-task-input"
-                      onChange={(e) =>
-                        this.setState({
-                          newTaskDesc: { i, value: e.target.value },
-                        })
-                      }
-                      value={newTaskDesc.i === i ? newTaskDesc.value : ""}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" && this.addNewTask(i)
-                      }
+                    <img
+                      src={closeIcon}
+                      alt="Close"
+                      onClick={() => this.deleteTask(i)}
                     />
                   </div>
                 );
               })}
             </div>
           )}
-          <p className="add-list-container" onClick={this.createANewList}>
-            + Add a new list
-          </p>
+          {todoList?.length > 0 && (
+            <div className="types-container">
+              {displayTypes.map((type, i) => (
+                <div
+                  key={i}
+                  onClick={() => this.setState({ typeOfDisplay: type })}
+                  className={`types-box ${
+                    type === typeOfDisplay ? "active" : ""
+                  }`}
+                >
+                  {" "}
+                  <p>{type}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </>
+      </div>
     );
   }
 }
