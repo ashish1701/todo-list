@@ -86,7 +86,12 @@ class TodoList extends React.Component {
       <span className="todo-text">
         {parts.map((part) =>
           part.match(/#[a-z]+/gi) ? (
-            <i onClick={() => this.setHashtagToTypes(part)}>{part}&nbsp;</i>
+            <i
+              onClick={() => this.setHashtagToTypes(part)}
+              style={{ cursor: "pointer", background: "#000", color: "#fff" }}
+            >
+              {part}&nbsp;
+            </i>
           ) : (
             `${part}${" "}`
           )
